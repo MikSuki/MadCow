@@ -1,0 +1,1174 @@
+<!doctype html>
+<html>
+
+<head>
+	<title>Mad Cow 5×5</title>
+	<script type="text/javascript">
+		var sendOutOrNot = false;
+		var unit = 0;
+		var unitString = " lb ";
+		var Exhausted = " Exhausted ";
+		var language = 2;
+		var body = document.body;
+		var br = document.createElement("br");
+		var div = document.createElement("div");
+		var table = document.createElement("table");
+		var maxRM = document.getElementsByClassName("maxRM");
+		var barWeight = document.getElementsByClassName("barWeight");
+		var actionEng = ["Bench Press", "Incline Press", "Squat", "Deadlift", "Barbell Rows", "Weight-Bearing Sit-Ups", "Dip", "Biceps Curl", "Triceps Extension", "Random Auxiliary Training 1", "Random Auxiliary Training 2"];
+		var actionChi = ["臥推", "上斜臥推", "深蹲", "硬舉", "槓鈴划船", "負重仰臥起坐", "雙槓撐體", "二頭肌彎舉", "三頭肌延伸", "任選輔助訓練 1", "任選輔助訓練 2"];
+		var unitEng = [" pounds", " kilograms"];
+		var unitChi = [" 磅", " 公斤"];
+		var unitShortEng = [" lb", " kg",];
+		var titleEng = ["Unit", "1 Rep Max", "Which week", "Barbell Weight", "Plates"];
+		var titleChi = ["單位", "一次最大重量", "第幾週", "槓鈴重量", "槓片數量"];
+		var smallTitleEng = ["Select unit", "Every week needs to add 2.5%", "Confirm what you have", "Send Out"];
+		var smallTitleChi = ["選擇單位", "每一周需要加2.5%", "確認你有什麼", "送出"];
+		var platesWeightLB = [55, 45, 35, 25, 20, 15, 10, 5, 2.5, 1.25];
+		var platesWeightKG = [25, 20, 15, 10, 5, 2.5, 2, 1.5, 1, 0.5];
+		var nowPlatesWeight = [];
+		var dayEng = ["Monday", "Wednesday", "Friday"];
+		var dayChi = ["星期一", "星期三", "星期五"];
+		var normalDayEng = ["(Moderate day)", "Squat × 7", "Bench Press × 7", "Barbell Rows × 7", "Random 1 × 3", "Random 2 × 3", "Sit-Ups × 4"];
+		var normalDayChi = ["(中度日)", "深蹲 × 7", "臥推 × 7", "槓鈴划船 × 7", "任選輔助訓練 1 × 3", "任選輔助訓練 2 × 3", "負重仰臥起坐 × 4"];
+		var easyDayEng = ["(Lightweight day)", "Squat × 6", "Incline Press × 6", "Deadlift × 6", "Sit-Ups × 3"];
+		var easyDayChi = ["(輕量日)", "深蹲 × 6", "上斜臥推 × 6", "硬舉 × 6", "負重仰臥起坐 × 3"];
+		var hardDayEng = ["(Aggravated date)", "Squat × 8", "Bench Press × 8", "Barbell Rows × 8", "Dip × 3", "Biceps Curl × 3", "Triceps × 3"];
+		var hardDayChi = ["(加重日)", "深蹲 × 8", "臥推 × 8", "槓鈴划船 × 8", "雙槓撐體 × 3", "二頭肌彎舉 × 3", "三頭肌延伸 × 3"];
+		var smallNotE = "Small weight plates is not enough !";
+		var bigNotE = "Big weight plates is not enough !";
+		var titleLiEng = ["Home", "News", "Training", "Language"];
+		var titleLiChi = ["首頁", "新發現", "訓練", "語言"];
+		var restLess2 = " ： Rest time between groups is not more than 2 minutes ";
+		var restLess5 = " ： Rest time between groups is not more than 5 minutes ";
+		var week = 1;
+		var m = 1;
+
+		//Calculate the total number of turns per week
+		function plus() {
+			week = document.getElementsByClassName("week")[0].value;
+			var i;
+			var l = maxRM.length;
+			m = 1;
+			for (i = 1; i < week; i++) {
+				m = floatAdd(m, 0.025);
+			}
+
+			for (i = 0; i < l; i++) {
+				var a = floatMul(maxRM[i].value, m);
+				if ((a % 1) > 0) {
+					var x = a % 1;
+					if (x >= 0.45)
+						a += 1;
+					a -= x;
+				}
+				maxRM[i].value = a;
+			}
+		}
+
+		function transformInt(num1, num2, padZeno, compute) {
+			num1 = '' + num1;
+			num2 = '' + num2;
+
+			var p1 = 0,
+				p2 = 0;
+			try {
+				p1 = num1.split(".")[1].length
+			} catch (e) { }
+			try {
+				p2 = num2.split(".")[1].length
+			} catch (e) { }
+
+			if (padZeno) {
+				while (p1 < p2) {
+					p1++;
+					num1 += '0';
+				}
+				while (p2 < p1) {
+					p2++;
+					num2 += '0';
+				}
+			}
+
+			var int1 = parseInt(num1.replace(".", ""), 10);
+			var int2 = parseInt(num2.replace(".", ""), 10);
+			return compute(int1, int2, p1, p2);
+		}
+
+		//add float
+		function floatAdd(num1, num2) {
+			return transformInt(num1, num2, true, function (int1, int2, p1, p2) {
+				return (int1 + int2) / Math.pow(10, p1);
+			});
+		}
+
+		//multiply float
+		function floatMul(num1, num2) {
+			return transformInt(num1, num2, false, function (int1, int2, p1, p2) {
+				return (int1 * int2) / Math.pow(10, p1 + p2);
+			});
+		}
+
+		//Change the now weight array ..... lb <---> kg
+		function copyWeight() {
+			var i;
+			var l = platesWeightLB.length;
+			if (unit == 1)
+				for (i = 0; i < l; i++)
+					nowPlatesWeight[i] = platesWeightKG[i];
+			else
+				for (i = 0; i < l; i++)
+					nowPlatesWeight[i] = platesWeightLB[i];
+		}
+
+		function changeUnitString() {
+			if (unit == 1)
+				if (language == 1)
+					unitString = " 公斤 ";
+				else
+					unitString = " kg ";
+			else
+				if (language == 1)
+					unitString = " 磅 ";
+				else
+					unitString = " lb ";
+		}
+
+		function changeUnit(a) {
+			var x = document.getElementsByClassName("unitShort");
+			var y = document.getElementsByClassName("unitWeight");
+			unit = a;
+			var i;
+			var l = y.length;
+			changeUnitString();
+			if (unit == 1) {
+				for (i = 0; i < l; i++)
+					y[i].innerHTML = platesWeightKG[i];
+				barWeight[0].value = 20;
+			} else {
+				for (i = 0; i < l; i++)
+					y[i].innerHTML = platesWeightLB[i];
+				barWeight[0].value = 45;
+			}
+
+			for (i = 0; i < x.length; i++)
+				x[i].innerHTML = unitString;
+			if (sendOutOrNot)
+				sendOut();
+		}
+
+		function changeLanguage(b) {
+			language = b;
+			var lll = document.getElementsByClassName("actionLanguage");
+			var uuus = document.getElementsByClassName("unitShort");
+			var uuu = document.getElementsByClassName("unit");
+			var ttt = document.getElementsByClassName("content-title");
+			var ultit = document.getElementsByClassName("titleLi");
+			var hhh = document.getElementsByClassName("h1");
+			var ccc = document.getElementsByClassName("calculate");
+			var sss = document.getElementsByClassName("content-smallTitle");
+			var i;
+			changeUnit(unit);
+			if (b == 1) {
+				for (i = 0; i < lll.length; i++)
+					lll[i].innerHTML = actionChi[i];
+				for (i = 0; i < uuu.length; i++)
+					uuu[i].innerHTML = unitChi[i];
+				for (i = 0; i < ttt.length; i++)
+					ttt[i].innerHTML = titleChi[i];
+				for (i = 0; i < ultit.length; i++)
+					ultit[i].innerHTML = titleLiChi[i];
+				for (i = 0; i < sss.length; i++)
+					sss[i].innerHTML = smallTitleChi[i];
+
+				hhh[0].innerHTML = "瘋牛 5x5";
+				ccc[0].innerHTML = "計算";
+				Exhausted = " 做到力竭 ";
+				smallNotE = "小重量的槓片不夠 !";
+				bigNotE = "大重量的槓片不夠 !";
+				restLess2 = " ： 組間休息時間不超過2分鐘 ";
+				restLess5 = " ： 組間休息時間不超過5分鐘 ";
+			} else {
+				for (i = 0; i < lll.length; i++)
+					lll[i].innerHTML = actionEng[i];
+				for (i = 0; i < uuu.length; i++)
+					uuu[i].innerHTML = unitEng[i];
+				for (i = 0; i < ttt.length; i++)
+					ttt[i].innerHTML = titleEng[i];
+				for (i = 0; i < ultit.length; i++)
+					ultit[i].innerHTML = titleLiEng[i];
+				for (i = 0; i < sss.length; i++)
+					sss[i].innerHTML = smallTitleEng[i];
+				hhh[0].innerHTML = "MadCow 5x5";
+				ccc[0].innerHTML = "Calculate";
+				Exhausted = " Exhausted ";
+				smallNotE = "Small weight plates is not enough !";
+				bigNotE = "Big weight plates is not enough !";
+				restLess2 = " ： Rest time between groups is not more than 2 minutes ";
+				restLess5 = " ： Rest time between groups is not more than 5 minutes ";
+			}
+			if (sendOutOrNot)
+				sendOut();
+		}
+		//Draw a timetable
+		function sendOut() {
+			var platesNum = document.getElementById("thisForm");
+			var platesTot = 0;
+			var day = ["Monday", "Wednesday", "Friday"];
+			var normalDay = ["(Moderate day)", "Squat × 7", "Bench Press × 7", "Barbell Rows × 7", "Random Auxiliary Training 1 × 3", "Random Auxiliary Training 2 × 3", "Weight-Bearing Sit-Ups × 4"];
+			var normal = [-1, 0.25, 0.4, 0.5, 0.6, 0.7, 0.8];
+			var easyDay = ["(Lightweight day)", "Squat × 6", "Incline Press × 6", "Deadlift × 6", "Weight-Bearing Sit-Ups × 3"];
+			var easySquat = [-1, 0.25, 0.4, 0.475, 0.55, 0.625];
+			var easyOther = [-1, 0.25, 0.5, 0.6, 0.7, 0.8];
+			var hardDay = ["(Aggravated date)", "Squat × 8", "Bench Press × 8", "Barbell Rows × 8", "Dip × 3", "Biceps Curl × 3", "Triceps Extension × 3"];
+			var hard = [-1, 0.25, 0.4, 0.5, 0.6, 0.7, 0.85, 0.6];
+			var other = [0.7, 0.7, 0.7];
+			var normalRM = [maxRM[2].value, maxRM[0].value, maxRM[4].value, maxRM[9].value, maxRM[10].value, maxRM[5].value];
+			var easyRM = [maxRM[2].value, maxRM[1].value, maxRM[3].value, maxRM[5].value];
+			var hardRM = [maxRM[2].value, maxRM[0].value, maxRM[4].value, maxRM[6].value, maxRM[7].value, maxRM[8].value];
+			var normalPercent = [normal, normal, normal, other, other, other];
+			var easyPercent = [easySquat, easyOther, easyOther, other];
+			var hardPercent = [hard, hard, hard, other, other, other];
+			var time1 = [unitString + "× 10", unitString + "× 8", unitString + " × 5", unitString + " × 5", unitString + " × 5", unitString + " × 5", unitString + " × 5"];
+			var time2 = [unitString + "× 8~12", unitString + " × 8~12", unitString + " × " + Exhausted];
+			var time3 = [unitString + "× 8~12", unitString + " × 8~12", unitString + " × 8~12"];
+			var time4 = [unitString + "× 10", unitString + " × 8", unitString + " × 5", unitString + " × 5", unitString + " × 5", unitString + " × 5", unitString + " × 3", unitString + " × 8"];
+			var time5 = [unitString + "× 5~8", unitString + " × 5~8", unitString + " × 5~8"];
+			var normalTime = [time1, time1, time1, time2, time2, time3];
+			var easyTime = [time1, time1, time1, time3];
+			var hardTime = [time4, time4, time4, time5, time2, time2];
+			var normalRest = [5, 5, 5, 2, 2, 2];
+			var easyRest = [2, 5, 5, 2];
+			var hardRest = [5, 5, 5, 0, 0, 0];
+			var string = "";
+
+			function calculate(x) {
+				var thisPlatesNum = [];
+				var w = x - barWeight[0].value;
+				var oWeight = [];
+				var oNum = [];
+				var level = 0;
+				var amount = 2;
+				string = "";
+
+				if (w > platesTot) {
+					string = bigNotE;
+					return;
+				} else if (w <= 0)
+					return;
+
+				for (var i = 0; i < platesNum.length - 1; i++) {
+					thisPlatesNum[i] = platesNum[i].value;
+				}
+				for (var j = 0; j < thisPlatesNum.length; j++) {
+
+					if ((w - 2 * nowPlatesWeight[j]) >= 0 && thisPlatesNum[j] >= 2) {
+						w -= 2 * nowPlatesWeight[j];
+						oWeight[level] = nowPlatesWeight[j];
+						oNum[level] = amount;
+						thisPlatesNum[j] -= 2;
+						j--;
+						amount += 2;
+					} else if ((j == (thisPlatesNum.length - 1)) && (w > 0)) {
+						string = smallNotE;
+						return;
+					} else {
+						if (oNum[level])
+							level++;
+						amount = 2;
+					}
+				}
+				string += "[";
+				for (var k = 0; k < oWeight.length; k++) {
+					if (oNum[k] == 0)
+						continue;
+					var a = oWeight[k] + "×" + oNum[k] + " ";
+					string += a;
+				}
+				string += "]";
+				return;
+			}
+
+
+			function prompt(x) {
+				if (x == 1)
+					string = "Big weight plates is not enough !";
+				else {
+					string = "Small weight plates is not enough !";
+				}
+			}
+			//Delete the previous table, etc.
+			function remove() {
+				if (sendOutOrNot) {
+					body.removeChild(br);
+					while (table.hasChildNodes())
+						table.removeChild(table.firstChild);
+					while (div.hasChildNodes())
+						div.removeChild(div.firstChild);
+				}
+			}
+
+			function createTable() {
+				table.setAttribute("class", "timetable");
+				body = document.body;
+				var span1 = document.createElement("span");
+				var span2 = document.createElement("span");
+				var span3 = document.createElement("span");
+				var span4 = document.createElement("span");
+				var br0 = document.createElement("br");
+				var br01 = document.createElement("br");
+				var tr, td;
+				var t = 0,
+					n = 0,
+					e = 0,
+					h = 0;
+				//check title or weight
+				var flag = true;
+				//whether print plates num
+				var s = false;
+				var value;
+				//Each group of times
+				var time;
+				span1.setAttribute("class", "fillColor");
+				span2.setAttribute("class", "fillColor");
+				span3.setAttribute("class", "explainColor");
+				span4.setAttribute("class", "explainColor");
+				span1.style.backgroundColor = "#FF3333";
+				span2.style.backgroundColor = "#00AA00";
+				span3.innerHTML = restLess5;
+				span4.innerHTML = restLess2;
+				div.appendChild(span1);
+				div.appendChild(span3);
+				div.appendChild(br0);
+				div.appendChild(span2);
+				div.appendChild(span4);
+				div.appendChild(br01);
+				body.appendChild(div);
+				while (t < hardDay.length) {
+					s = false;
+					time = 0;
+					tr = table.insertRow();
+					for (var i = 0; i < 3; i++) {
+						var td = tr.insertCell();
+						var p = document.createElement("p");
+						if (flag) {
+							td.setAttribute("class", "timeTitleTd");
+							p.setAttribute("class", "timeTitle");
+							if (t == 0) {
+								td.style.backgroundColor = "#AAAAAA";
+								var a = document.createElement("p");
+								a.setAttribute("class", "timeTitle");
+								td.style.lineHeight = "10px";
+								if (language == 1)
+									a.innerHTML = dayChi[i];
+								else
+									a.innerHTML = dayEng[i];
+								td.appendChild(a);
+							} else {
+								td.style.backgroundColor = "#FF8C00";
+							}
+							if (i == 0) {
+								if (language == 1)
+									value = normalDayChi[t];
+								else
+									value = normalDayEng[t];
+								if (normalRest[t - 1] == 5)
+									td.style.backgroundColor = "#FF3333";
+								else if (normalRest[t - 1] == 2)
+									td.style.backgroundColor = "#00AA00";
+							} else if (i == 1) {
+								if (easyDay[t]) {
+									if (language == 1)
+										value = easyDayChi[t];
+									else
+										value = easyDayEng[t];
+									if (easyRest[t - 1] == 5)
+										td.style.backgroundColor = "#FF3333";
+									else if (easyRest[t - 1] == 2)
+										td.style.backgroundColor = "#00AA00";
+								} else {
+									value = 0;
+									td.style.backgroundColor = "	#FFFACD";
+								}
+							} else if (i == 2) {
+								if (language == 1)
+									value = hardDayChi[t];
+								else
+									value = hardDayEng[t];
+								if (t >= 1) {
+									flag = false;
+									if (hardRest[t - 1] == 5)
+										td.style.backgroundColor = "#FF3333";
+									else
+										td.style.backgroundColor = "#AAAAAA";
+								} else
+									t++;
+							}
+						} else if (!flag && t >= 1) {
+							td.setAttribute("class", "timeTd");
+							if (i == 0) {
+								if (normalRM[t - 1] && normalPercent[t - 1][n]) {
+									value = normalRM[t - 1] * normalPercent[t - 1][n];
+									time = normalTime[t - 1][n++];
+								} else
+									value = 0;
+							} else if (i == 1) {
+								if (easyRM[t - 1] && easyPercent[t - 1][e]) {
+									value = easyRM[t - 1] * easyPercent[t - 1][e];
+									time = easyTime[t - 1][e++];
+								} else
+									value = 0;
+							} else if (i == 2) {
+								if (hardRM[t - 1] && hardPercent[t - 1][h]) {
+									value = hardRM[t - 1] * hardPercent[t - 1][h];
+									time = hardTime[t - 1][h++];
+								}
+								if (!hardPercent[t - 1][h]) {
+									t++;
+									flag = true;
+									n = 0;
+									e = 0;
+									h = 0;
+								}
+							}
+							if (!isNaN(value)) {
+								if (value < 0)
+									value = barWeight[0].value;
+								else if ((value % 1) > 0) {
+									var x = value % 1;
+									if (x >= 0.45)
+										value++;
+									value -= x;
+								}
+								calculate(value);
+								s = true;
+							}
+
+						}
+						if (value) {
+							p.innerHTML = value;
+							if (time != 0)
+								p.innerHTML += time;
+						}
+						td.appendChild(p);
+						if (s) {
+							var p = document.createElement("p");
+							p.setAttribute("class", "small");
+							p.innerHTML = string;
+							td.appendChild(p);
+						}
+					}
+					body.appendChild(table);
+				}
+
+				br.style.fontSize = "50px";
+				body.appendChild(br);
+			}
+
+			for (var i = 0; i < maxRM.length - 1; i++) {
+				if (isNaN(maxRM[i].value) || (maxRM[i].value < 0)) {
+					if (language == 1)
+						alert('確認你的"一次最大重量" !');
+					else
+						alert("Confirm your RM data !");
+					return;
+				}
+			}
+			if (isNaN(barWeight[0].value) || (barWeight[0].value < 0))
+				if (language == 1)
+					alert('確認你的"槓鈴重量" !');
+				else
+					alert("Confirm your Barbell data !");
+			for (var i = 0; i < platesNum.length - 1; i++) {
+				platesTot += nowPlatesWeight[i] * platesNum[i].value;
+				if (isNaN(platesNum[i].value) || (platesNum[i].value < 0)) {
+					if (language == 1)
+						alert("確認你的槓片數量 !");
+					else
+						alert("Confirm your Plates data !");
+					return;
+				}
+			}
+			copyWeight();
+			remove();
+			sendOutOrNot = true;
+			createTable();
+		}
+	</script>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<style>
+		body{
+				background-color: #DDDDDD;
+				background: linear-gradient(to right, #CCCCFF, 	#CCEEFF);
+				margin: 0;
+			}
+			
+			@media only screen and (max-width: 450px) {
+				.dropDown{
+					list-style-type: none;
+					background-color: #444444;
+					font-size: 0px;
+					top: 0;
+					position: sticky;
+					height: 50px;
+					padding: 0;
+					margin: 0;
+					line-height: 50px;
+					z-index: 99;
+					}
+				.dropDown-li{
+					display: inline-block;
+					font-size: 15px;
+					-webkit-transition-duration: 0.3s; 
+					transition-duration: 0.3s;
+					padding-left: 8px;
+					padding-right: 8px;
+					color: white;
+					}
+				.dropDown-li:hover{
+					background-color: black;
+					cursor: pointer;
+					}
+				.dropDown-li a{
+					text-decoration: none;
+					}
+				.dropDown-li:hover .dropdown-content{
+					display: block;
+					background-color: #DDDDDD;
+					-webkit-transition-duration: 1s; 
+					transition-duration: 1s;
+					}
+				.dropdown-content {
+					display: none;
+					position: absolute;
+					box-shadow: 0px 10px 10px 0px rgba(0,0,0,0.2);
+					}
+				.dropdown-content a{
+					display: block;
+					color: black;
+					font-size: 12px;
+					line-height: 30px;
+					padding-left:50px;
+					padding-right:50px;
+					-webkit-transition-duration: 0.3s; 
+					transition-duration: 0.3s;		
+					}
+				.dropdown-content a:hover{
+					background-color: #FFFFFF;
+					}
+				.h1{
+						text-align:center;
+						font-size:30px;
+						text-shadow: 0 0 3px #FFBB66;
+					}
+				.content-table{
+						display: table;
+						width: 80%;
+						margin: 0 auto;
+						text-align: center;
+						font-family: Microsoft JhengHei,arial, sans-serif;
+						table-layout: fixed;
+						word-wrap: break-word;
+					}
+				.content-tr{
+						display: table-row;
+						font-weight: bold;
+					}
+				.content-td{
+						display: inline-block;
+						width: 100%;
+						padding-top: 15px;
+						padding-bottom: 15px;
+					}
+				.content-td:nth-child(odd){
+						text-align: center;
+						background: linear-gradient(to right,#CCFF99,#66FF66,#DDFF77,#99FF99);
+					}
+				.content-td:nth-child(even){
+						text-align: left;
+						font-size: 13px;
+						background: linear-gradient(to bottom, #AAAAAA,#DDDDDD,#FFFFFF,#DDDDDD,#AAAAAA);
+					}
+				.content-title{
+						font-size: 25px;
+					}
+				.content-smallTitle{
+						font-size: 18px;
+					}
+				form ,.fake-form{
+					position: relative;
+					right: -30px;
+					line-height: 30px;
+				}
+				
+				.plusButton{
+					border-radius: 5px;
+					font-size: 15px;
+					border: 1px solid black;
+					background: #66FF66;
+				}
+
+				.timetable{
+					width: 90%;
+					padding: 0;
+					font-family: Microsoft JhengHei,arial, sans-serif;
+					table-layout: fixed;
+					word-wrap: break-word;
+					margin:0 auto;
+					margin-top: 5%;
+				}
+				.timeTd{
+					height: 0;
+					background-color:#FFFACD;
+					border: 1px solid black;
+					text-align: left;
+					font-size: 8px;
+				}
+				.timeTitle{
+					font-weight: bold;
+					font-size: 12px;
+				}
+				.timeTitleTd{
+					padding-bottom: 0px;
+					padding-top: 0px;
+					border: 1px solid black;
+				}
+				p{
+					text-align: center;
+					font-size: 10px;
+				}
+				.small{
+					display: none;
+				}
+				.fillColor{
+					position: relative;
+					left: 2%;
+					padding-right: 20px;
+					font-size: 15px;
+				}
+				.explainColor{
+					font-size: 6px;
+					position: relative;
+					left: 4%;
+				}
+				.container{
+					text-align: center;
+					margin-top: 2%;
+				}
+				.send{
+					text-align: center;
+					margin-top: 2%;
+					}
+				.sendOutButton{
+					height:30px; 
+					width:100px; 
+					font-size: 10px;
+					border-radius: 20px;
+					border: 1.5px solid #4CAF50;
+					-webkit-transition-duration: 1s; 
+					transition-duration: 1s;
+				}
+					
+				.sendOutButton:hover{
+					cursor: pointer;
+					color: white;
+					background-color: #4CAF50;
+				}
+			}
+			@media only screen and (min-width: 450px) and (max-width: 768px) {
+				.dropDown{
+					list-style-type: none;
+					background-color: #444444;
+					font-size: 0px;
+					top: 0;
+					position: sticky;
+					height: 75px;
+					padding: 0;
+					margin: 0;
+					line-height: 75px;
+					z-index: 99;
+					}
+				.dropDown-li{
+					display: inline-block;
+					font-size: 25px;
+					-webkit-transition-duration: 0.3s; 
+					transition-duration: 0.3s;
+					padding-left: 18px;
+					padding-right: 18px;
+					color: white;
+					}
+				.dropDown-li:hover{
+					background-color: black;
+					cursor: pointer;
+					}
+				.dropDown-li a{
+					text-decoration: none;
+				}
+				.dropDown-li:hover .dropdown-content{
+					display: block;
+					background-color: #DDDDDD;
+					-webkit-transition-duration: 1s; 
+					transition-duration: 1s;
+					}
+				.dropdown-content {
+					display: none;
+					position: absolute;
+					box-shadow: 0px 10px 10px 0px rgba(0,0,0,0.2);
+					}
+				.dropdown-content a{
+					display: block;
+					color: black;
+					font-size: 12px;
+					line-height: 30px;
+					padding-left:75px;
+					padding-right:75px;
+					-webkit-transition-duration: 0.3s; 
+					transition-duration: 0.3s;		
+					}
+				.dropdown-content a:hover{
+					background-color: #FFFFFF;
+					}
+				.h1{
+						text-align:center;
+						font-size:40px;
+						text-shadow: 0 0 3px #FFBB66;
+					}
+				.content-table{
+						display: table;
+						width: 80%;
+						margin: 0 auto;
+						text-align: center;
+						font-family: Microsoft JhengHei,arial, sans-serif;
+						table-layout: fixed;
+						word-wrap: break-word;
+					}
+				.content-tr{
+						display: table-row;
+						font-weight: bold;
+					}
+				.content-td{
+						display: inline-block;
+						width: 100%;
+						padding-top: 15px;
+						padding-bottom: 15px;
+					}
+				.content-td:nth-child(odd){
+						text-align: center;
+						background: linear-gradient(to right,#CCFF99,#66FF66,#DDFF77,#99FF99);
+					}
+				.content-td:nth-child(even){
+						text-align: left;
+						font-size: 18px;
+						background: linear-gradient(to bottom, #AAAAAA,#DDDDDD,#FFFFFF,#DDDDDD,#AAAAAA);
+					}
+				.content-title{
+						font-size: 30px;
+					}
+				.content-smallTitle{
+						font-size: 22px;
+					}
+				form ,.fake-form{
+					position: relative;
+					right: -30px;
+					}
+				.plusButton{
+					font-size: 15px;
+					border-radius: 5px;
+					border: 1px solid black;
+					background: #66FF66;
+				}
+				.timetable{
+					width: 90%;
+					padding: 0;
+					font-family: Microsoft JhengHei,arial, sans-serif;
+					table-layout: fixed;
+					word-wrap: break-word;
+					margin:0 auto;
+					margin-top: 5%;
+				}
+				.timeTd{
+					height: 0;
+					background-color:#FFFACD;
+					border: 1px solid black;
+					text-align: left;
+					font-size: 20px;
+				}
+				.timeTitle{
+					font-weight: bold;
+					font-size: 14.5px;
+				}
+				.timeTitleTd{
+					padding-bottom: 0px;
+					padding-top: 0px;
+				}
+				p{
+					text-align: center;
+					font-size: 15px;
+				}
+				.small{
+					display: none;
+				}
+				.fillColor{
+					position: relative;
+					left: 8%;
+					padding-right: 50px;
+					font-size: 17px;
+				}
+				.explainColor{
+					font-size: 15px;
+					position: relative;
+					left: 13%;
+				}
+				.container{
+					text-align: center;
+					margin-top: 2%;
+				}
+				.send{
+					text-align: center;
+					margin-top: 2%;
+					}
+				.sendOutButton{
+					height:38px; 
+					width:125px; 
+					font-size: 25px;
+					border-radius: 20px;
+					border: 1.5px solid #4CAF50;
+					-webkit-transition-duration: 1s; 
+					transition-duration: 1s;
+				}
+					
+				.sendOutButton:hover{
+					cursor: pointer;
+					color: white;
+					background-color: #4CAF50;
+				}
+			}
+			@media only screen and (min-width: 768px) {
+				.dropDown{
+					list-style-type: none;
+					background-color: #444444;
+					font-size: 0px;
+					top: 0;
+					position: sticky;
+					height: 100px;
+					padding: 0;
+					margin: 0;
+					line-height: 100px;
+					z-index: 99;
+				}
+				.dropDown-li{
+					display: inline-block;
+					font-size: 37px;
+					-webkit-transition-duration: 0.3s; 
+					transition-duration: 0.3s;
+					color: white;
+					padding-left:40px;
+					padding-right:40px;
+					text-align: center;
+				}
+				.dropDown-li:hover{
+					background-color: black;
+					cursor: pointer;
+				}
+				.dropDown-li a{
+					text-decoration: none;
+				}
+				.dropDown-li:hover .dropdown-content{
+					display: block;
+					background-color: #DDDDDD;
+					-webkit-transition-duration: 1s; 
+					transition-duration: 1s;
+				}
+				.dropdown-content {
+					display: none;
+					position: absolute;
+					box-shadow: 0px 10px 10px 0px rgba(0,0,0,0.2);
+				}
+				.dropdown-content a{
+					display: block;
+					color: black;
+					font-size: 25px;
+					line-height: 50px;
+					padding-left:120px;
+					padding-right:120px;
+					-webkit-transition-duration: 0.3s; 
+					transition-duration: 0.3s;		
+				}
+				.dropdown-content a:hover{
+					background-color: #FFFFFF;
+				}
+				.h1{
+					text-align:center;
+					font-size:60px;
+					text-shadow: 0 0 3px #FFBB66;
+				}
+				.content-table{
+					display: table;
+					width: 80%;
+					margin: 0 auto;
+					text-align: center;
+					border-spacing: 10px 15px;
+					font-family: Microsoft JhengHei,arial, sans-serif;
+					table-layout: fixed;
+					word-wrap: break-word;
+				}
+				.content-tbody{
+					display:table-row-group;
+				}
+				.content-tr{
+					display: table-row;
+					background: linear-gradient(to bottom, #AAAAAA,#DDDDDD,#FFFFFF,#DDDDDD,#AAAAAA);
+				}
+				.content-td{
+					display: table-cell;
+					height: 100px;
+					width: 50%;
+					padding-top: 20px;
+					padding-bottom: 20px;
+					border: 1px solid black;
+					text-align: left;
+					font-weight: bold;
+					font-size: 20px;
+					vertical-align: middle;
+				}
+				.content-td:nth-child(odd){
+					text-align: center;
+				}
+				.content-a{
+					display: none;
+				}
+				.content-title{
+					font-size: 55px;
+				}
+				.content-smallTitle{
+					font-size: 30px;
+				}
+				form ,.fake-form{
+					position: relative;
+					right: -10px;
+				}
+				.timetable{
+					width: 90%;
+					border-spacing: 3px;
+					font-family: Microsoft JhengHei,arial, sans-serif;
+					table-layout: fixed;
+					word-wrap: break-word;
+					margin:0 auto;
+					margin-top: 5%;
+					text-align: center;
+				}
+				.timeTd{
+					height: 65px;
+					background-color:#FFFACD;
+					line-height:5px;
+					padding-top: 7px;
+					padding-bottom: 7px;
+					text-align: left;
+					border: 1px solid black;
+				}
+				.timeTitle{
+					font-family: Microsoft JhengHei,arial, sans-serif;
+					font-weight: bold;
+					font-size: 35px;
+				}
+				.timeTitleTd{
+					padding-bottom: 0px;
+					padding-top: 0px;
+					font-size: 30px;
+					border: 1px solid black;
+				}
+				p{
+					text-align: center;
+					font-size: 20px;
+				}
+				.small{
+					font-size: 15px;
+				}
+				.container{
+					text-align: center;
+					margin-top: 2%;
+				}
+				form{
+					position: relative;
+					right: -10px;
+				}
+				.fillColor{
+					position: relative;
+					left: 8%;
+					padding-right: 50px;
+					font-size: 50px;
+				}
+				.explainColor{
+					font-size: 25px;
+					position: relative;
+					left: 13%;
+				}
+				.plusButton{
+					font-size: 20px;
+					border-radius: 5px;
+					border: 1px solid black;
+					background-color: #66FF66;
+				}
+				.plusButton:hover{
+					cursor: pointer;
+				}
+				.send{
+					text-align: center;
+					margin-top: 2%;
+					}
+				.sendOutButton{
+					height:50px; 
+					width:150px; 
+					font-size: 25px;
+					border-radius: 20px;
+					border: 1.5px solid #4CAF50;
+					-webkit-transition-duration: 1s; 
+					transition-duration: 1s;
+				}
+					
+				.sendOutButton:hover{
+					cursor: pointer;
+					color: white;
+					background-color: #4CAF50;
+				}
+			}
+		</style>
+</head>
+
+<body>
+
+	<ul class="dropDown">
+		<li class="dropDown-li"><span class="titleLi">Home</span></li>
+		<li class="dropDown-li"><span class="titleLi">News</span>
+			<div class="dropdown-content">
+				<a href="#">111</a>
+				<a href="#">222</a>
+				<a href="#">333</a>
+			</div>
+		</li>
+		<li class="dropDown-li"><span class="titleLi">Training</span>
+			<div class="dropdown-content">
+				<a href="#">aaa</a>
+				<a href="#">bbb</a>
+				<a href="#">ccc</a>
+			</div>
+		</li>
+		<li class="dropDown-li" style="float: right;"><span class="titleLi">Language</span>
+			<div class="dropdown-content" style="right:0;">
+				<a style="cursor: pointer;" onclick="changeLanguage(1)">中文</a>
+				<a style="cursor: pointer;" onclick="changeLanguage(2)">English</a>
+			</div>
+		</li>
+	</ul>
+
+	<h1 class="h1">MadCow 5x5</h1>
+
+
+	<div class="content-table">
+		<div class="content-tr">
+			<div class="content-td">
+				<span class="content-title">Unit</span><br>
+				<span class="content-smallTitle">Select unit</span>
+			</div>
+			<div class="content-td">
+				<form>
+					<input type="radio" name="unit" checked onclick="changeUnit(0)"><span class="unit"> pounds</span><br>
+					<input type="radio" name="unit" onclick="changeUnit(1)"><span class="unit"> kilograms</span><br>
+				</form>
+			</div>
+		</div>
+		<div class="content-tr">
+			<div class="content-td">
+				<span class="content-title">1 Rep Max</span>
+			</div>
+			<div class="content-td">
+				<form>
+					<input type="text" class="maxRM" size="1" value="180" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Bench Press</span> <br>
+					<input type="text" class="maxRM" size="1" value="70" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Incline Press</span> <br>
+					<input type="text" class="maxRM" size="1" value="200" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Squat</span> <br>
+					<input type="text" class="maxRM" size="1" value="250" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Deadlift</span> <br>
+					<input type="text" class="maxRM" size="1" value="150" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Barbell Rows</span> <br>
+					<input type="text" class="maxRM" size="1" value="100" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Weight-Bearing Sit-Ups</span> <br>
+					<input type="text" class="maxRM" size="1" value="100" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Dip</span> <br>
+					<input type="text" class="maxRM" size="1" value="50" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Biceps Curl</span> <br>
+					<input type="text" class="maxRM" size="1" value="50" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Triceps Extension</span> <br>
+					<input type="text" class="maxRM" size="1" value="50" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Random Auxiliary Training 1</span> <br>
+					<input type="text" class="maxRM" size="1" value="50" onfocus="this.select();"><span class="unitShort"> lb</span>
+					<span class="actionLanguage">Random Auxiliary Training 2 </span> <br>
+				</form>
+			</div>
+		</div>
+		<div class="content-tr">
+			<div class="content-td">
+				<span class="content-title">Which week</span><br>
+				<span class="content-smallTitle">Every week needs to add 2.5%</span>
+			</div>
+			<div class="content-td">
+				<div class="fake-form">
+					<input type="text" class="week" size="1" value="1" onfocus="this.select();">
+					<button class="plusButton" onclick="plus()"><span class="calculate">Calculate</span></button>
+				</div>
+			</div>
+		</div>
+		<div class="content-tr">
+			<div class="content-td">
+				<span class="content-title">Barbell Weight</span>
+			</div>
+			<div class="content-td">
+				<form>
+					<input type="text" class="barWeight" size="1" value="45" onfocus="this.select();"><span class="unitShort"> lb</span><br>
+				</form>
+			</div>
+		</div>
+		<div class="content-tr">
+			<div class="content-td">
+				<span class="content-title">Plates</span><br>
+				<span class="content-smallTitle">Confirm what you have</span>
+			</div>
+			<div class="content-td">
+				<form action="javascript:sendOut()" id="thisForm" class="thatForm" name="barForm">
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 55</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 45</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 35</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 25</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 20</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 15</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 10</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 5</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 2.5</span><span class="unitShort">
+						lb</span><br>
+					<input type="text" size="1" value=10 onfocus="this.select();"> × <span class="unitWeight"> 1.25</span><span class="unitShort">
+						lb</span><br>
+				</form>
+			</div>
+		</div>
+	</div>
+
+
+
+	<div class="container ">
+		<button type="submit" class="sendOutButton" form="thisForm" value="Submit"><span class="content-smallTitle">Send Out</span></button>
+	</div>
+	<br><br>
+</body>
+
+</html>
